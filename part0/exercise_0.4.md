@@ -4,7 +4,7 @@ sequenceDiagram
     participant server
 
     user->>browser: Enter input
-    user->>browser: Save input
+    user->>browser: click save button
 
     browser->>server: POST https://studies.cs.helsinki.fi/exampleapp/new_note
     server->>browser: The server responds with HTTP status code 302
@@ -14,5 +14,5 @@ sequenceDiagram
     activate server
     server-->>browser: HTML document
     deactivate server
-    Note right of browser: The browser will do 3 more HTTP requests which is the same process as the last diagram
+    Note right of browser: The browser will do 3 more HTTP(css, js, json) requests which is the same process as the last diagram
     Note right of browser: The browser display the updated note after it finished all the process

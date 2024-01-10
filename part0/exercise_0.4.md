@@ -11,7 +11,7 @@ sequenceDiagram
     server-->>browser: HTML document
     deactivate server
 
-    Note right of browser: The browser will do 3 more HTTP(css, js, json) requests which is the same process as the last diagram
+    Note right of browser: The browser will do 3 more HTTP requests which is the same process as the example diagram
     
     browser->>server: GET https://studies.cs.helsinki.fi/exampleapp/main.css
     activate server

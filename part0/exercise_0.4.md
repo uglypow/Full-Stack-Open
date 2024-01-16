@@ -2,11 +2,7 @@
 sequenceDiagram
     participant browser
     participant server
-<<<<<<< HEAD
-    
-=======
 
->>>>>>> 1ae4036b91c8dd36fdfe845c627ef15aa3118038
     browser->>server: POST https://studies.cs.helsinki.fi/exampleapp/new_note
     activate server
     server->>browser: The server responds with HTTP status code 302(URL redirect)

@@ -42,7 +42,7 @@ const App = () => {
       </button>
 
       <h2>Anecdote with most votes</h2>
-      {anecdotes[findMostVoteIndex()]}<br/>
+      {anecdotes[findMostVoteIndex()]}<br />
       has {points[findMostVoteIndex()]} votes
     </div>
   )

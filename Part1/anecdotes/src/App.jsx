@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import './App.css'
+
 const App = () => {
   const anecdotes = [
     'If it hurts, do it more often.',
@@ -12,22 +12,11 @@ const App = () => {
     'The only way to go fast, is to go well.'
   ]
 
-  const [selected, setSelected] = useState(Math.floor(Math.random() * anecdotes.length))
-  const zeroArray = Array(anecdotes.length).fill(0)
-  const [points, setPoint] = useState(zeroArray)
-
-  const handleVote = () => {
-    const copy = [...points]
-    copy[selected]++
-    setPoint(copy)
-  }
-
-  const handleNextAnecdotes = () => setSelected(Math.floor(Math.random() * anecdotes.length))
-
-  const findMostVoteIndex = () => points.indexOf(Math.max(...points))
+  const [selected, setSelected] = useState(0)
 
   return (
     <div>
+<<<<<<< HEAD
       <h2>Anecdote of the day</h2>
       <p>{anecdotes[selected]}</p>
       has {points[selected]} votes
@@ -44,6 +33,9 @@ const App = () => {
       <h2>Anecdote with most votes</h2>
       {anecdotes[findMostVoteIndex()]}<br />
       has {points[findMostVoteIndex()]} votes
+=======
+      {anecdotes[selected]}
+>>>>>>> parent of 78a0ff0 (Compted anecdotes)
     </div>
   )
 }

@@ -36,6 +36,7 @@ const App = () => {
         newName={newName}
         setNewName={setNewName}
         setNewNumber={setNewNumber}
+        persons={persons}
         setPersons={setPersons} />
       <h2>Numbers</h2>
       <Persons filteredPerson={filteredPerson} />

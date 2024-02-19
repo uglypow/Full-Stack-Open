@@ -15,14 +15,12 @@ const App = () => {
 
   // Fetch persons data from server
   useEffect(() => {
-    console.log('effect')
     personService
       .getAll()
       .then(initialPersons => {
         setPersons(initialPersons)
       })
   }, [])
-  console.log('render', persons.length, 'persons')
 
   // Event handlers
 
@@ -45,7 +43,9 @@ const App = () => {
       number: newNumber,
     }
 
-    if (!checkExistName(persons, tempNewName)) {
+    const existPerson = checkExistPerson(persons, tempNewName)
+
+    if (!existPerson) {
       personService
         .create(tempNewName)
         .then(returnedPerson => {
@@ -54,11 +54,18 @@ const App = () => {
           setNewNumber('')
         })
     } else
-      alert(`${newName} is already added to phonebook`)
+      if (window.confirm(`${newName} is already addded to phonebook, replace the old number with a new one?`)) {
+        personService
+          .update(existPerson.id, tempNewName)
+          .then(returnedPerson => {
+            setPersons(persons.map(person => person.id !== existPerson.id ? person : returnedPerson))
+          })
+      }
   }
 
-  const checkExistName = (persons, newPerson) => {
-    return persons.some(item => item.name === newPerson.name);
+  const checkExistPerson = (persons, newPerson) => {
+    const existingPerson = persons.find(item => item.name === newPerson.name);
+    return existingPerson ? existingPerson : null;
   }
 
   const removePerson = (id, name) => {
@@ -72,7 +79,6 @@ const App = () => {
   }
 
   // End of event handlers
-
 
   return (
     <div>

@@ -3,6 +3,7 @@ import Filter from './components/Filter'
 import PersonForm from './components/PersonForm'
 import Persons from './components/Persons'
 import personService from './services/persons'
+import './index.css'
 
 const App = () => {
   const [persons, setPersons] = useState([])
@@ -12,6 +13,9 @@ const App = () => {
   const filteredPerson = persons.filter(persons =>
     persons.name.toLowerCase().includes(searchPerson.toLowerCase())
   );
+  const [message, setMessage] = useState(null)
+  const [status, setStatus] = useState()
+
 
   // Fetch persons data from server
   useEffect(() => {
@@ -52,13 +56,27 @@ const App = () => {
           setPersons(persons.concat(returnedPerson))
           setNewName('')
           setNewNumber('')
+          setStatus('success')
+          setMessage(`Added ${returnedPerson.name}`)
+          setTimeout(() => {
+            setMessage(null)
+          }, 5000)
         })
+
     } else
       if (window.confirm(`${newName} is already addded to phonebook, replace the old number with a new one?`)) {
         personService
           .update(existPerson.id, tempNewName)
           .then(returnedPerson => {
             setPersons(persons.map(person => person.id !== existPerson.id ? person : returnedPerson))
+          })
+          .catch(error => {
+            setStatus('error')
+            setMessage(`Information of ${existPerson.name} has already been removed from server`)
+            setTimeout(() => {
+              setMessage(null)
+            }, 5000)
+            setPersons(persons.filter(person => person.id !== existPerson.id))
           })
       }
   }
@@ -75,14 +93,44 @@ const App = () => {
         .then(() => {
           setPersons(persons.filter(item => item.id !== id))
         })
+        .catch(error => {
+          setStatus('error')
+          setMessage(`Information of ${name} has already been removed from server`)
+          setTimeout(() => {
+            setMessage(null)
+          }, 5000)
+          setPersons(persons.filter(person => person.id !== id))
+        })
     }
   }
+
+  const Notification = ({ message }) => {
+    if (message === null) {
+      return null
+    }
+
+    if (status === 'success') {
+      return (
+        <div className='message'>
+          {message}
+        </div>
+      )
+    } else {
+      return (
+        <div className='error'>
+          {message}
+        </div>
+      )
+    }
+  }
+
 
   // End of event handlers
 
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={message} />
       <Filter
         searchPerson={searchPerson}
         handleSearchChange={handleSearchChange} />

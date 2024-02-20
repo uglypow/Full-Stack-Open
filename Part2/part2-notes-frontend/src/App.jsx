@@ -4,7 +4,7 @@ import noteService from './services/notes'
 import './index.css'
 
 const App = () => {
-  const [notes, setNotes] = useState([])
+  const [notes, setNotes] = useState(null)
   const [newNote, setNewNote] = useState(
     'a new note...'
   )
@@ -19,6 +19,10 @@ const App = () => {
       })
   }, [])
 
+  // do not render anything if notes is still null
+  if (!notes) {
+    return null
+  }
 
   const addNote = (event) => {
     event.preventDefault()
@@ -90,7 +94,7 @@ const App = () => {
   const notesToShow = showAll
     ? notes
     : notes.filter(note => note.important === true)
-    
+
 
   return (
     <div>

@@ -3,6 +3,7 @@ import Filter from './components/Filter'
 import PersonForm from './components/PersonForm'
 import Persons from './components/Persons'
 import personService from './services/persons'
+import Notification from './components/Notification'
 import './index.css'
 
 const App = () => {
@@ -104,33 +105,12 @@ const App = () => {
     }
   }
 
-  const Notification = ({ message }) => {
-    if (message === null) {
-      return null
-    }
-
-    if (status === 'success') {
-      return (
-        <div className='message'>
-          {message}
-        </div>
-      )
-    } else {
-      return (
-        <div className='error'>
-          {message}
-        </div>
-      )
-    }
-  }
-
-
   // End of event handlers
 
   return (
     <div>
       <h2>Phonebook</h2>
-      <Notification message={message} />
+      <Notification message={message} status={status}/>
       <Filter
         searchPerson={searchPerson}
         handleSearchChange={handleSearchChange} />

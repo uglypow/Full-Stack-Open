@@ -40,6 +40,7 @@ function App() {
     } else {
       setMessage('')
       setCountries([])
+      setWeather(null)
     }
   }, [search])
 

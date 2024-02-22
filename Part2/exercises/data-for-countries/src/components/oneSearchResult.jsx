@@ -1,5 +1,3 @@
-import axios from "axios"
-
 const oneSearchResult = ({ country, weather}) => {
     const flagStyle = {
         width: 200

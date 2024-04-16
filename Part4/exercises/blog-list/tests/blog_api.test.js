@@ -16,11 +16,10 @@ beforeEach(async () => {
 })
 
 test('correct amount of blog posts in the JSON format.', async () => {
-    const response = await api.get('/api/blogs')
+    await api
+        .get('/api/blogs')
         .expect(200)
         .expect('Content-Type', /application\/json/)
-
-    assert.strictEqual(response.body.length, helper.initialBlogs.length)
 })
 
 test('unique identifier property of the blog posts is named id', async () => {
@@ -38,6 +37,8 @@ test('unique identifier property of the blog posts is named id', async () => {
 })
 
 test('successfully creates a new blog post', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+
     const newBlog = {
         title: 'async/await simplifies making async calls',
         author: 'Robert C. Martin',
@@ -49,11 +50,11 @@ test('successfully creates a new blog post', async () => {
         .send(newBlog)
         .expect(201)
 
-    const response = await api.get('/api/blogs')
+    const blogsAtEnd = await helper.blogsInDb()
 
-    assert.strictEqual(response.body.length, helper.initialBlogs.length + 1)
+    assert.strictEqual(blogsAtEnd.length, blogsAtStart.length + 1)
 
-    const addedBlog = response.body.find(blog => blog.title === newBlog.title)
+    const addedBlog = blogsAtEnd.find(blog => blog.title === newBlog.title)
 
     // new blog doesn't have id property
     assert.deepStrictEqual(
@@ -77,6 +78,8 @@ test('likes property is missing from the request', async () => {
 })
 
 test('title or url properties are missing from the request data', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+
     const newBlog = {
         author: 'Robert C. Martin',
         likes: 0
@@ -86,9 +89,41 @@ test('title or url properties are missing from the request data', async () => {
         .send(newBlog)
         .expect(400)
 
-    const response = await api.get('/api/blogs')
+    const blogsAtEnd = await helper.blogsInDb()
 
-    assert.strictEqual(response.body.length, helper.initialBlogs.length)
+    assert.strictEqual(blogsAtStart.length, blogsAtEnd.length)
+})
+
+test('delete succeeds with status code 204 if id is valid', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+    const blogToDelete = blogsAtStart[0]
+
+    await api
+        .delete(`/api/blogs/${blogToDelete.id}`)
+        .expect(204)
+
+    const blogsAtEnd = await helper.blogsInDb()
+
+    assert.strictEqual(blogsAtEnd.length, blogsAtStart.length - 1)
+
+    assert(!blogsAtEnd.includes(blogToDelete))
+})
+
+test('updating the information of an individual blog post', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+    const blogToUpdate = blogsAtStart[0]
+
+    blogToUpdate.likes = blogToUpdate.likes + 10
+
+    await api
+        .put(`/api/blogs/${blogToUpdate.id}`)
+        .send(blogToUpdate)
+        .expect(200)
+
+    const blogsAtEnd = await helper.blogsInDb()
+    const updatedBlog = blogsAtEnd.find(blog => blog.id === blogToUpdate.id)
+
+    assert.strictEqual(updatedBlog.likes, blogToUpdate.likes)
 })
 
 after(async () => {

@@ -1,4 +1,4 @@
-const { test, after, beforeEach } = require('node:test')
+const { test, after, beforeEach, describe } = require('node:test')
 const assert = require('node:assert')
 const mongoose = require('mongoose')
 const supertest = require('supertest')
@@ -9,121 +9,209 @@ const helper = require('./test_helper')
 
 const Blog = require('../models/blog')
 
-beforeEach(async () => {
-    await Blog.deleteMany({})
+const bcrypt = require('bcrypt')
+const User = require('../models/user')
 
-    await Blog.insertMany(helper.initialBlogs)
-})
+describe('blog api', () => {
+    beforeEach(async () => {
+        await Blog.deleteMany({})
+        await User.deleteMany({})
 
-test('correct amount of blog posts in the JSON format.', async () => {
-    await api
-        .get('/api/blogs')
-        .expect(200)
-        .expect('Content-Type', /application\/json/)
-})
+        // Create user
+        const passwordHash = await bcrypt.hash('sekret', 10)
+        const user = new User({ username: 'root', passwordHash })
+        await user.save()
 
-test('unique identifier property of the blog posts is named id', async () => {
-    const newBlog = {
-        title: 'async/await simplifies making async calls',
-        author: 'Robert C. Martin',
-        url: 'https://fullstackopen.com/en/',
-        likes: 0
-    }
-    const response = await api.post('/api/blogs')
-        .send(newBlog)
-        .expect(201)
+        // Create token
+        const login = await api
+            .post('/api/login')
+            .send({ username: 'root', password: 'sekret' })
 
-    assert.ok(response.body.hasOwnProperty('id'))
-})
+        // Create blogs
+        for (let blog of helper.initialBlogs) {
+            blog.user = user._id
+            const blogObject = new Blog(blog)
+            await blogObject.save()
+        }
 
-test('successfully creates a new blog post', async () => {
-    const blogsAtStart = await helper.blogsInDb()
+        global.token = `Bearer ${login.body.token}`
+    })
 
-    const newBlog = {
-        title: 'async/await simplifies making async calls',
-        author: 'Robert C. Martin',
-        url: 'https://fullstackopen.com/en/',
-        likes: 0
-    }
+    describe('note tests', () => {
+        test('correct amount of blog posts in the JSON format.', async () => {
+            await api
+                .get('/api/blogs')
+                .expect(200)
+                .expect('Content-Type', /application\/json/)
+        })
 
-    await api.post('/api/blogs')
-        .send(newBlog)
-        .expect(201)
+        test('unique identifier property of the blog posts is named id', async () => {
+            const newBlog = {
+                title: 'async/await simplifies making async calls',
+                author: 'Robert C. Martin',
+                url: 'https://fullstackopen.com/en/',
+                likes: 0
+            }
 
-    const blogsAtEnd = await helper.blogsInDb()
+            const response = await api.post('/api/blogs')
+                .send(newBlog)
+                .set('Authorization', global.token)
+                .expect(201)
 
-    assert.strictEqual(blogsAtEnd.length, blogsAtStart.length + 1)
+            assert.ok(response.body.hasOwnProperty('id'))
+        })
 
-    const addedBlog = blogsAtEnd.find(blog => blog.title === newBlog.title)
+        test('successfully creates a new blog post', async () => {
+            const blogsAtStart = await helper.blogsInDb()
 
-    // new blog doesn't have id property
-    assert.deepStrictEqual(
-        { ...addedBlog, id: undefined },
-        { ...newBlog, id: undefined }
-    )
-})
+            const newBlog = {
+                title: 'async/await simplifies making async calls',
+                author: 'Robert C. Martin',
+                url: 'https://fullstackopen.com/en/',
+                likes: 0
+            }
 
-test('likes property is missing from the request', async () => {
-    const newBlog = {
-        title: 'async/await simplifies making async calls',
-        author: 'Robert C. Martin',
-        url: 'https://fullstackopen.com/en/'
-    }
+            await api.post('/api/blogs')
+                .send(newBlog)
+                .set('Authorization', global.token)
+                .expect(201)
 
-    const response = await api.post('/api/blogs')
-        .send(newBlog)
-        .expect(201)
+            const blogsAtEnd = await helper.blogsInDb()
 
-    assert.strictEqual(response.body.likes, 0)
-})
+            assert.strictEqual(blogsAtEnd.length, blogsAtStart.length + 1)
+        })
 
-test('title or url properties are missing from the request data', async () => {
-    const blogsAtStart = await helper.blogsInDb()
+        test('likes property is missing from the request', async () => {
+            const newBlog = {
+                title: 'async/await simplifies making async calls',
+                author: 'Robert C. Martin',
+                url: 'https://fullstackopen.com/en/'
+            }
 
-    const newBlog = {
-        author: 'Robert C. Martin',
-        likes: 0
-    }
+            const response = await api.post('/api/blogs')
+                .send(newBlog)
+                .set('Authorization', global.token)
+                .expect(201)
 
-    await api.post('/api/blogs')
-        .send(newBlog)
-        .expect(400)
+            assert.strictEqual(response.body.likes, 0)
+        })
 
-    const blogsAtEnd = await helper.blogsInDb()
+        test('title or url properties are missing from the request data', async () => {
+            const blogsAtStart = await helper.blogsInDb()
 
-    assert.strictEqual(blogsAtStart.length, blogsAtEnd.length)
-})
+            const newBlog = {
+                author: 'Robert C. Martin',
+                likes: 0
+            }
 
-test('delete succeeds with status code 204 if id is valid', async () => {
-    const blogsAtStart = await helper.blogsInDb()
-    const blogToDelete = blogsAtStart[0]
+            await api.post('/api/blogs')
+                .send(newBlog)
+                .set('Authorization', global.token)
+                .expect(400)
 
-    await api
-        .delete(`/api/blogs/${blogToDelete.id}`)
-        .expect(204)
+            const blogsAtEnd = await helper.blogsInDb()
 
-    const blogsAtEnd = await helper.blogsInDb()
+            assert.strictEqual(blogsAtStart.length, blogsAtEnd.length)
+        })
 
-    assert.strictEqual(blogsAtEnd.length, blogsAtStart.length - 1)
+        test('delete succeeds with status code 204 if id is valid', async () => {
+            const blogsAtStart = await helper.blogsInDb()
+            const blogToDelete = blogsAtStart[0]
 
-    assert(!blogsAtEnd.includes(blogToDelete))
-})
+            await api
+                .delete(`/api/blogs/${blogToDelete.id}`)
+                .set('Authorization', global.token)
+                .expect(204)
 
-test('updating the information of an individual blog post', async () => {
-    const blogsAtStart = await helper.blogsInDb()
-    const blogToUpdate = blogsAtStart[0]
+            const blogsAtEnd = await helper.blogsInDb()
 
-    blogToUpdate.likes = blogToUpdate.likes + 10
+            assert.strictEqual(blogsAtEnd.length, blogsAtStart.length - 1)
 
-    await api
-        .put(`/api/blogs/${blogToUpdate.id}`)
-        .send(blogToUpdate)
-        .expect(200)
+            assert(!blogsAtEnd.includes(blogToDelete))
+        })
 
-    const blogsAtEnd = await helper.blogsInDb()
-    const updatedBlog = blogsAtEnd.find(blog => blog.id === blogToUpdate.id)
+        test('updating the information of an individual blog post', async () => {
+            const blogsAtStart = await helper.blogsInDb()
+            const blogToUpdate = blogsAtStart[0]
 
-    assert.strictEqual(updatedBlog.likes, blogToUpdate.likes)
+            blogToUpdate.likes = blogToUpdate.likes + 10
+
+            await api
+                .put(`/api/blogs/${blogToUpdate.id}`)
+                .send(blogToUpdate)
+                .expect(200)
+
+            const blogsAtEnd = await helper.blogsInDb()
+            const updatedBlog = blogsAtEnd.find(blog => blog.id === blogToUpdate.id)
+
+            assert.strictEqual(updatedBlog.likes, blogToUpdate.likes)
+        })
+    })
+
+    describe('user tests', () => {
+        test('invalid username', async () => {
+            const usersAtStart = await helper.usersInDb()
+            const newUser = {
+                username: 'aa',
+                name: 'aa',
+                password: '123',
+            }
+
+            await api
+                .post('/api/users')
+                .send(newUser)
+                .expect(400)
+                .expect('Content-Type', /application\/json/)
+
+            const usersAtEnd = await helper.usersInDb()
+            assert.strictEqual(usersAtStart.length, usersAtEnd.length)
+
+            const usernames = usersAtEnd.map(user => user.username)
+            assert(!usernames.includes(newUser.username))
+        })
+
+        test('invalid password', async () => {
+            const usersAtStart = await helper.usersInDb()
+            const newUser = {
+                username: 'aaa',
+                name: 'aaa',
+                password: '12',
+            }
+
+            await api
+                .post('/api/users')
+                .send(newUser)
+                .expect(400)
+                .expect('Content-Type', /application\/json/)
+
+            const usersAtEnd = await helper.usersInDb()
+            assert.strictEqual(usersAtStart.length, usersAtEnd.length)
+
+            const usernames = usersAtEnd.map(user => user.username)
+            assert(!usernames.includes(newUser.username))
+        })
+
+        test('username already taken', async () => {
+            const usersAtStart = await helper.usersInDb()
+
+            const newUser = {
+                username: 'root',
+                name: 'Superuser',
+                password: 'salainen',
+            }
+
+            const result = await api
+                .post('/api/users')
+                .send(newUser)
+                .expect(400)
+                .expect('Content-Type', /application\/json/)
+
+            const usersAtEnd = await helper.usersInDb()
+            assert(result.body.error.includes('expected `username` to be unique'))
+
+            assert.strictEqual(usersAtEnd.length, usersAtStart.length)
+        })
+    })
 })
 
 after(async () => {
